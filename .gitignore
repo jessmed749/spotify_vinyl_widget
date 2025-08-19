@@ -1,6 +1,20 @@
 # Secrets
 .env
 apps/python-widget/.env
-
-# not necessary for the widget to run
 .cache*
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS junk 
+.DS_Store
+Thumbs.db
