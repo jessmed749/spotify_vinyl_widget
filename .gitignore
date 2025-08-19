@@ -2,6 +2,8 @@
 .env
 apps/python-widget/.env
 .cache*
+apps/python-widget/.cache*
+
 
 # Python cache files
 __pycache__/
