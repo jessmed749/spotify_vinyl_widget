@@ -1,8 +1,16 @@
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
 
-cliend_id = "your_client_id"
-client_secret = "your_client_secret"
+import os
+from dotenv import load_dotenv
+from spotipy import Spotify
+from spotipy.oauth2 import SpotifyOAuth
+#from spotipy.oauth2 import SpotifyClientCredentials #good for user data only
 
-sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=cliend_id, client_secret=client_secret))
+def main():
+    load_dotenv()
 
+    sp = Spotify(auth_manager=SpotifyOAuth(
+        client_id=os.getenv("SPOTIPY_CLIENT_ID"),
+        client_secret=os.getenv("SPOTIPY_CLIENT_SECRET"),
+        redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI"),
+        scope="user-library-read user-read-playback-state user-modify-playback-state",
+    ))
