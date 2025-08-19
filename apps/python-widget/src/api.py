@@ -1,59 +1,107 @@
 
-from flask import Flask, request, jsonify
-from spotipy import Spotify
-from spotipy.oauth2 import SpotifyOAuth
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from spotipy.exceptions import SpotifyException
+
+try:
+    from spotify_client import SpotifyClient
+except ImportError:
+    from sp_client import SpotifyClient
 
 app = Flask(__name__)
-sp = Spotify(auth_manager=SpotifyOAuth(scope=(
-    "user-read-playback-state user-modify-playback-state user-read-currently-playing"
-)))
+CORS(app)
+
+spc = SpotifyClient()   
+
+def _ok(data=None, code=200):
+    return (jsonify(data or {}), code)
+
+def _err(msg, code=400):
+    return (jsonify({"error": msg}), code)
 
 @app.get("/now")
 def now():
-    cp = sp.current_user_playing_track()
-    state = sp.current_playback()
-    if not cp or not cp.get("item"):
-        return jsonify({"playing": False, "reason": "No track"}), 200
-    item = cp["item"]
-    return jsonify({
-        "playing": cp.get("is_playing", False),
-        "song": item["name"],
-        "artists": ", ".join(a["name"] for a in item["artists"]),
-        "album": item["album"]["name"],
-        "album_image": item["album"]["images"][0]["url"] if item["album"]["images"] else None,
-        "progress_ms": cp.get("progress_ms"),
-        "duration_ms": item["duration_ms"],
-        "device": (state or {}).get("device", {}),
-        "shuffle_state": (state or {}).get("shuffle_state"),
-        "repeat_state": (state or {}).get("repeat_state"),
-    })
+    try:
+        cur = spc.sp.current_user_playing_track()
+        state = spc.sp.current_playback()
+        if not cur or not cur.get("item"):
+            return _ok({
+                "playing": False,
+                "reason": "No track",
+                "device": (state or {}).get("device", None),
+            })
+        item = cur["item"]
+        return _ok({
+            "playing": bool(cur.get("is_playing")),
+            "title": item.get("name"),
+            "artists": ", ".join(a.get("name", "") for a in item.get("artists", [])),
+            "album": item.get("album", {}).get("name"),
+            "album_image": (item.get("album", {}).get("images") or [{}])[0].get("url"),
+            "progress_ms": cur.get("progress_ms"),
+            "duration_ms": item.get("duration_ms"),
+            "device": (state or {}).get("device", None),
+            "shuffle_state": (state or {}).get("shuffle_state"),
+            "repeat_state": (state or {}).get("repeat_state"),
+        })
+    except SpotifyException as e:
+        return _err(str(e), 409)
 
-@app.post("/play")
-def _play():
-    sp.start_playback()
-    return ("", 204)
-@app.post("/pause")
-def _pause():
-    sp.pause_playback()
-    return ("", 204)
+@app.post("/playpause")
+def playpause():
+    try:
+        spc.play_pause()
+        return ("", 204)
+    except SpotifyException as e:
+        return _err(str(e), 409)
+
 @app.post("/next")
-def _next():
-    sp.next_track()
-    return ("", 204)
-@app.post("/prev")
-def _prev():
-    sp.previous_track()
-    return ("", 204)
+def next_track():
+    try:
+        spc.next_track()
+        return ("", 204)
+    except SpotifyException as e:
+        return _err(str(e), 409)
 
 @app.post("/seek")
-def _seek():
-    ms = int(request.json.get("ms", 0))
-    sp.seek_track(ms); return ("", 204)
+def seek():
+    try:
+        ms = int(request.json.get("ms", 0))
+        spc.sp.seek_track(ms)
+        return ("", 204)
+    except (ValueError, TypeError):
+        return _err("ms must be an integer", 400)
+    except SpotifyException as e:
+        return _err(str(e), 409)
 
 @app.post("/volume")
-def _vol():
-    pct = max(0, min(100, int(request.json.get("percent", 50))))
-    sp.volume(pct); return ("", 204)
+def volume():
+    try:
+        pct = max(0, min(100, int(request.json.get("percent", 50))))
+        spc.sp.volume(pct)
+        return ("", 204)
+    except (ValueError, TypeError):
+        return _err("percent must be 0..100", 400)
+    except SpotifyException as e:
+        return _err(str(e), 409)
+
+@app.get("/devices")
+def devices():
+    try:
+        return _ok(spc.sp.devices().get("devices", []))
+    except SpotifyException as e:
+        return _err(str(e), 409)
+
+@app.post("/transfer")
+def transfer():
+    try:
+        device_id = request.json["device_id"]
+        spc.sp.transfer_playback(device_id, force=True)
+        return ("", 204)
+    except KeyError:
+        return _err("device_id is required", 400)
+    except SpotifyException as e:
+        return _err(str(e), 409)
 
 if __name__ == "__main__":
-    app.run(port=5057, debug=True)
+    # run: .\.venv\Scripts\python .\src\api.py
+    app.run(host="127.0.0.1", port=int(os.getenv("API_PORT", 5057)), debug=True)
