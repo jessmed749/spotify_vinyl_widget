@@ -1,7 +1,9 @@
 
+import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from spotipy.exceptions import SpotifyException
+
 
 try:
     from spotify_client import SpotifyClient
@@ -104,4 +106,7 @@ def transfer():
 
 if __name__ == "__main__":
     # run: .\.venv\Scripts\python .\src\api.py
-    app.run(host="127.0.0.1", port=int(os.getenv("API_PORT", 5057)), debug=True)
+    host = os.getenv("API_HOST", "127.0.0.1")
+    port = int(os.getenv("API_PORT", "5057"))
+    debug = os.getenv("FLASK_DEBUG", "0") == "1"  
+    app.run(host=host, port=port, debug=debug)
