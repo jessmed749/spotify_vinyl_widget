@@ -1,0 +1,3 @@
+# Secrets
+.env
+apps/python-widget/.env
