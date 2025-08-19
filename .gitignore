@@ -1,3 +1,6 @@
 # Secrets
 .env
 apps/python-widget/.env
+
+# not necessary for the widget to run
+.cache
