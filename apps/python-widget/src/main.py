@@ -3,7 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 import sp_client as sc  
 
-POLL_MS = 2000
+POLL_MS = 4000
 
 def normalize(playback):
     if not playback:
