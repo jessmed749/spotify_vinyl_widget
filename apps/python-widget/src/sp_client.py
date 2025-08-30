@@ -5,7 +5,13 @@ from dotenv import load_dotenv
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 
-SCOPES = "user-read-currently-playing user-read-playback-state user-modify-playback-state"
+SCOPES = [
+    "user-read-currently-playing",
+    "user-read-playback-state",
+    "user-modify-playback-state",
+]
+
+SpotifyOAuth.SCOPE = " ".join(SCOPES)
 
 def _load_env():
     env_path = Path(__file__).resolve().parents[1] / ".env"

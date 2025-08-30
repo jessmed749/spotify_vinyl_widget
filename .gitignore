@@ -1,16 +1,23 @@
 # Secrets
 .env
 apps/python-widget/.env
+# Spotipy token cache (anywhere)
+.cache
 .cache*
+.cache-spotify
+*/.cache
+*/.cache*
 apps/python-widget/.cache*
-
 
 # Python cache files
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 *.pkl
+apps/python-widget/src/__pycache__/
+
 
 # Virtual environments
 .venv/

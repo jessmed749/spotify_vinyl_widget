@@ -1,0 +1,5 @@
+spotipy
+Flask
+flask-cors
+python-dotenv
+Pillow
