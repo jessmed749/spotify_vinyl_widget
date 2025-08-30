@@ -25,7 +25,7 @@ class SpotifyClient:
             client_id=os.getenv("SPOTIPY_CLIENT_ID"),
             client_secret=os.getenv("SPOTIPY_CLIENT_SECRET"),
             redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://localhost:8080/callback"),
-            scope=SCOPES,
+             scope=" ".join(SCOPES),
         ))
 
     # Get current playing song

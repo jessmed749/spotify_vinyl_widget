@@ -27,3 +27,12 @@ env/
 # OS junk 
 .DS_Store
 Thumbs.db
+
+# Node / Electron 
+node_modules/
+dist/
+out/
+build/
+release/
+*.log
+*.asar
