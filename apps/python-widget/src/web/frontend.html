@@ -2,3 +2,175 @@
 
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Widget</title>
+    <style> 
+        :root{
+            --background: #eef0f3;
+            --card: #f6f7f9;
+            --text:#1f2937;
+            --muted:#6b7280;
+            --shadow: 10px 10px 24px rgba(0,0,0,.12), -6px -6px 16px rgba(255,255,255,.7);
+            --shadow-inset: inset 10px 10px 24px rgba(0,0,0,.06), inset -6px -6px 16px rgba(255,255,255,.8);
+            --radius: 22px;
+        }
+        *{box-sizing:border-box}
+        body{
+            margin:0; padding:24px; background:var(--background); color:var(--text);
+            font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+            display:grid; place-items:center; min-height:100vh;
+        }
+
+        .player-card{
+            width: min(680px, 92vw);
+            background:var(--card);
+            border-radius: calc(var(--radius) * 1.2);
+            padding:20px 24px; position: relative;
+            box-shadow: var(--shadow);
+            display:grid; grid-template-columns: 140px 1fr; gap:20px; align-items:center;
+        }
+        .badge{ position:absolute; top:12px; right:12px; background:#15d39e; color:white; font-weight:700; font-size:12px; padding:6px 10px; border-radius:999px; box-shadow:var(--shadow); }
+        
+        .turntable{ position:relative; width:120px; height:120px; margin-left:6px; display:grid; place-items:center; }
+        .cover{
+            width:120px; height:120px; border-radius:50%; object-fit:cover;
+            box-shadow: var(--shadow-inset); border:8px solid var(--card);
+            animation: spin 7s linear infinite; animation-play-state: paused;
+            background:#ddd;
+        }
+        .is-playing .cover{ animation-play-state: running; }
+        @keyframes spin{
+            from{ transform: rotate(0deg); }
+            to{ transform: rotate(360deg); }
+        }
+
+        /*simple tonearm*/
+        .arm{ position:absolute; width:6px; height:74px; background:#cfd6de; right:-16px; top:2px; border-radius:6px; box-shadow: var(--shadow); transform-origin: top center; transform: rotate(18deg); }
+        .arm::before{ content:""; position:absolute; top:-8px; left:-9px; width:22px; height:22px; background:#dfe6ee; border-radius:50%; box-shadow:var(--shadow); }
+
+        .meta h3{ margin:0 0 2px; font-size:20px; font-weight:700; }
+        .meta p{ margin:0; color:var(--muted); }
+
+        .controls{ display:flex; gap:14px; margin-top:10px; }
+        .btn{
+            width:50px; height:50px; border:none; border-radius:50%; background:var(--card) ;
+            box-shadow: var(--shadow); display:grid; place-items:center; cursor:pointer;    
+            transition: transform .06s ease, box-shadow .1s ease; outline:none;
+        }
+        .btn:active{ transform: translateY(1px); box-shadow: var(--shadow-inset); }
+        .btn svg{ width:22px; height:22px; }
+
+        .row{ grid-column: 2 / span 1; }
+        .skeleton{ background:linear-gradient(90deg,#e7eaef, #f5f7fa, #e7eaef); background-size:200% 100%; animation:sheen 1.3s ease infinite; border-radius:10px; }
+        @keyframes sheen{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        .title-skel{ width:55%; height:18px; }
+        .artist-skel{ width:40%; height:14px; margin-top:6px; }
+    </style>
+</head>
+<body>
+    <div class="player-card" id="card">
+        <div class="turntable">
+            <img id="cover" class="cover" alt="Album cover" src=""/>
+            <div class="arm" aria-hidden="true"></div>
+        </div>
+
+        <div class="row">
+            <div class="meta">
+                <h3 id="title"><span class="skeleton title-skel"></span></h3>
+                <p id="artist"><span class="skeleton artist-skel"></span></p>
+            </div>
+            <div class="controls" style="margin-top:14px;">
+                <button class="btn" id="prevBtn" title="Previous" aria-label="Previous">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 6h2v12H7zM21 6v12L10 12l11-6z"/></svg>
+                </button>
+                <button class="btn" id="playBtn" title="Play/Pause" aria-label="Play/Pause">
+                    <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                    <svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+                </button>
+                <button class="btn" id="nextBtn" title="Next" aria-label="Next">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 6v12l11-6L5 6zm12 0h2v12h-2z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+                
+    <script>
+        const card = document.getElementById('card');
+        const cover = document.getElementById('cover');
+        const titleEl = document.getElementById('title');
+        const artistEl = document.getElementById('artist');
+        const playBtn = document.getElementById('playBtn');
+        const playIcon = document.getElementById('playIcon');
+        const pauseIcon = document.getElementById('pauseIcon');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // Change API is hosted elsewhere
+        const API_BASE = '';
+
+        async function getPlayback(){
+            try {
+                const res = await fetch(`${API_BASE}/api/playback`, {cache:'no-store'});
+                if(!res.ok) throw new Error(await res.text());
+                const data = await res.json();
+                renderPlayback(data);
+            } catch(err){
+                renderEmpty(err);
+            }
+        }
+
+
+        function renderPlayback(data){
+            if(!data || !data.item){ return renderEmpty(); }
+            const { title, artist, is_playing, image } = data.item;
+
+
+            titleEl.textContent = title || 'Unknown';
+            artistEl.textContent = artist || 'Unknown artist';
+            cover.src = image || '';
+
+
+            card.classList.toggle('is-playing', !!is_playing);
+            playIcon.style.display = is_playing ? 'none' : 'block';
+            pauseIcon.style.display = is_playing ? 'block' : 'none';
+        }
+
+
+        function renderEmpty(){
+            titleEl.textContent = 'No track playing';
+            artistEl.textContent = '—';
+            cover.removeAttribute('src');
+            card.classList.remove('is-playing');
+            playIcon.style.display = 'block';
+            pauseIcon.style.display = 'none';
+        }
+
+
+        async function post(path){
+            const res = await fetch(`${API_BASE}${path}`, {method:'POST'});
+            if(!res.ok){ console.warn('API error', await res.text()); }
+            return res.ok;
+        }
+
+
+        playBtn.addEventListener('click', async () => {
+            await post('/api/play-pause');
+            await getPlayback();
+        });
+        prevBtn.addEventListener('click', async () => {
+            await post('/api/previous');
+            await getPlayback();
+        });
+        nextBtn.addEventListener('click', async () => {
+            await post('/api/next');
+            await getPlayback();
+        });
+
+
+        // initial + polling
+        getPlayback();
+        setInterval(getPlayback, 3500);
+    </script>
+</body>
+</html>
