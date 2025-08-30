@@ -6,6 +6,7 @@ A tiny, always-on-top Windows desktop widget that shows your currently playing S
 **Backend:** Flask + Spotipy  
 **Frontend:** HTML/CSS/JS  
 **Desktop wrapper:** Electron
+
 <img width="660" height="158" alt="image" src="https://github.com/user-attachments/assets/832ba9c2-edb7-41c3-a8b7-b98a7743723c" />
 
 
@@ -92,4 +93,5 @@ Pull requests and suggestions are welcome! Please open an issue first to discuss
 ## 📄 License
 
 MIT License. See [LICENSE](LICENSE) for details.
+
 
